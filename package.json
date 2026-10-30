@@ -1,0 +1,35 @@
+{
+  "name": "magpie-stuck",
+  "version": "0.2.0",
+  "description": "Magpie 插件：收集编程 Agent 的「卡点」（反复失败、打转、推翻、盲目探索、上下文膨胀、人工纠偏、模型切换、过早宣布完成、慢和贵），规则可在 App 内可视化编辑；支持导入 Claude Code / Codex 历史会话与今日/3天/7天/30天多维度报表。",
+  "type": "module",
+  "license": "MIT",
+  "files": ["stuck.hooks.js", "page/", "scripts/", "docs/", "README.zh-CN.md"],
+  "scripts": {
+    "build": "node scripts/build-page.mjs",
+    "test": "node --test",
+    "check": "node scripts/build-page.mjs --check && node --check stuck.hooks.js && node --check page/core.js && node --check page/app.js && node --check page/app.bundle.js && node --check scripts/export-day.mjs && node --check scripts/export-range.mjs && node --check scripts/import-history.mjs",
+    "export": "node scripts/export-day.mjs",
+    "export:range": "node scripts/export-range.mjs",
+    "import": "node scripts/import-history.mjs"
+  },
+  "magpie": {
+    "hooks": "./stuck.hooks.js",
+    "page": {
+      "title": "Stuck Points",
+      "titles": { "zh": "卡点" },
+      "file": "page/index.html"
+    },
+    "options": {
+      "captureOrigins": ["local", "gateway-key"],
+      "ignoreAgents": [],
+      "snapshotDays": 3,
+      "snapshotMaxKB": 600,
+      "publishSeconds": 90,
+      "retainDays": 30,
+      "maxTextChars": 20000,
+      "outputDir": "magpie-stuck",
+      "gatewayTimeoutMs": 1000
+    }
+  }
+}

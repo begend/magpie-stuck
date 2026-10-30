@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>卡点 · magpie-stuck</title>
+<script src="_magpie/bridge.js"></script>
+<script src="app.bundle.js" defer></script>
+<style>
+  :root {
+    --card: rgba(128,128,128,.07); --bd: rgba(128,128,128,.25); --dim: rgba(128,128,128,.95);
+    --ok: #34c77b; --bad: #ff5f56; --warn: #f5a623; --accent: #4f8ef7;
+    --high: #ff5f56; --medium: #f5a623; --low: #8a94a6;
+  }
+  * { box-sizing: border-box; }
+  body { font: 13px/1.5 -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; margin: 0; padding: 14px 16px 40px; }
+  h2 { margin: 0; font-size: 16px; }
+  h3 { margin: 0 0 8px; font-size: 13.5px; }
+  .sub { color: var(--dim); font-size: 12px; }
+  .top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+  .spacer { flex: 1; }
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--bd); margin-bottom: 12px; }
+  .tabs button { border: none; border-bottom: 2px solid transparent; border-radius: 0; padding: 6px 14px; }
+  .tabs button.on { border-bottom-color: var(--accent); color: var(--accent); font-weight: 600; }
+  .card { background: var(--card); border: 1px solid var(--bd); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; }
+  button { font: inherit; padding: 3px 11px; border-radius: 7px; border: 1px solid var(--bd); background: transparent; color: inherit; cursor: pointer; }
+  button:hover { border-color: var(--accent); color: var(--accent); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.danger:hover { border-color: var(--bad); color: var(--bad); }
+  button.link { border: none; padding: 0 2px; color: var(--accent); }
+  select, input, textarea { font: inherit; padding: 4px 7px; border-radius: 7px; border: 1px solid var(--bd); background: transparent; color: inherit; }
+  textarea { width: 100%; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-bottom: 12px; }
+  .kpi { border: 1px solid var(--bd); border-radius: 10px; padding: 10px 12px; background: var(--card); }
+  .kpi span { display: block; color: var(--dim); font-size: 11.5px; } .kpi b { font-size: 20px; }
+  .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+  .bars div.row { display: flex; align-items: center; gap: 8px; padding: 2px 4px; border-radius: 6px; cursor: pointer; }
+  .bars div.row:hover, .bars div.row.on { background: rgba(79,142,247,.12); }
+  .bars .lbl { width: 42%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+  .bars .bar { flex: 1; height: 8px; background: rgba(128,128,128,.15); border-radius: 4px; overflow: hidden; }
+  .bars .bar i { display: block; height: 100%; background: var(--accent); }
+  .bars .n { width: 34px; text-align: right; font-variant-numeric: tabular-nums; font-size: 12px; }
+  .trend { display: flex; align-items: flex-end; gap: 6px; height: 70px; }
+  .trend div { flex: 1; text-align: center; font-size: 10.5px; color: var(--dim); cursor: pointer; }
+  .trend i { display: block; background: var(--accent); border-radius: 3px 3px 0 0; margin: 0 auto 2px; width: 70%; min-height: 2px; }
+  .trend div.on i { background: var(--warn); }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 5px 7px; border-bottom: 1px solid var(--bd); font-size: 12.5px; vertical-align: top; }
+  th { color: var(--dim); font-weight: 500; font-size: 11.5px; }
+  tr.click { cursor: pointer; } tr.click:hover td { background: rgba(79,142,247,.07); }
+  .sev { display: inline-block; padding: 0 7px; border-radius: 99px; font-size: 11px; border: 1px solid; white-space: nowrap; }
+  .sev.high { color: var(--high); } .sev.medium { color: var(--medium); } .sev.low { color: var(--low); }
+  .pill { display: inline-block; padding: 0 8px; border-radius: 99px; font-size: 11px; border: 1px solid var(--bd); margin: 0 3px 2px 0; }
+  .filters { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+  .filters .pill { cursor: pointer; } .filters .pill:hover { border-color: var(--bad); color: var(--bad); }
+  .ev { max-width: 560px; word-break: break-all; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; }
+  .muted { color: var(--dim); }
+  .empty { color: var(--dim); text-align: center; padding: 28px 0; }
+  .banner { border: 1px solid var(--warn); color: var(--warn); border-radius: 10px; padding: 8px 12px; margin-bottom: 10px; }
+  .banner.bad { border-color: var(--bad); color: var(--bad); }
+  .banner.ok { border-color: var(--ok); color: var(--ok); }
+  .split { display: grid; grid-template-columns: minmax(240px, 34%) 1fr; gap: 12px; }
+  .slist { max-height: 72vh; overflow: auto; }
+  .sitem { padding: 7px 9px; border: 1px solid var(--bd); border-radius: 8px; margin-bottom: 6px; cursor: pointer; }
+  .sitem.on { border-color: var(--accent); background: rgba(79,142,247,.08); }
+  .sitem .t { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tl { max-height: 72vh; overflow: auto; }
+  .m { border-left: 3px solid var(--bd); padding: 4px 10px; margin: 0 0 6px; }
+  .m.user { border-left-color: var(--accent); } .m.assistant { border-left-color: var(--ok); } .m.tool { border-left-color: var(--dim); }
+  .m.hit { background: rgba(255,95,86,.07); }
+  .m .h { font-size: 11px; color: var(--dim); }
+  .m pre { white-space: pre-wrap; word-break: break-word; margin: 2px 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; max-height: 220px; overflow: auto; }
+  .m .err { color: var(--bad); }
+  .m .tag { display: inline-block; margin: 2px 4px 0 0; font-size: 11px; color: var(--bad); border: 1px solid var(--bad); border-radius: 99px; padding: 0 7px; }
+  .rule { border: 1px solid var(--bd); border-radius: 9px; margin-bottom: 8px; }
+  .rule .hd { display: flex; align-items: center; gap: 8px; padding: 7px 10px; cursor: pointer; }
+  .rule .hd .nm { font-weight: 600; } .rule.off .hd .nm { opacity: .5; text-decoration: line-through; }
+  .rule .bd { padding: 6px 12px 12px; border-top: 1px dashed var(--bd); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 8px 14px; }
+  .field label { display: block; font-size: 11.5px; color: var(--dim); margin-bottom: 2px; }
+  .field input, .field select, .field textarea { width: 100%; }
+  .field .hint { font-size: 10.5px; color: var(--dim); }
+  .field.bad input, .field.bad textarea { border-color: var(--bad); }
+  .delta { font-size: 11.5px; } .delta.up { color: var(--bad); } .delta.down { color: var(--ok); }
+  .msg { font-size: 12px; margin-left: 8px; } .msg.ok { color: var(--ok); } .msg.bad { color: var(--bad); }
+  .hidden { display: none !important; }
+  .seg { display: inline-flex; gap: 2px; }
+  .seg button { padding: 2px 10px; border-radius: 99px; font-size: 12px; }
+  .seg button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .issue .ihd { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .sigrow { margin: 4px 0; }
+  .evchain { margin: 4px 0 4px 18px; padding: 0; font-size: 12px; }
+  .evchain li { margin: 2px 0; }
+</style>
+</head>
+<body>
+  <div class="top">
+    <h2>卡点</h2>
+    <span class="sub" id="status">连接 Magpie…</span>
+    <span class="spacer"></span>
+    <span class="seg" id="ranges">
+      <button data-act="range" data-val="day" class="on">今日</button>
+      <button data-act="range" data-val="3d">近3天</button>
+      <button data-act="range" data-val="7d">近7天</button>
+      <button data-act="range" data-val="30d">近30天</button>
+    </span>
+    <label class="sub">日期 <select id="day"></select></label>
+    <button id="refresh" data-act="refresh">刷新</button>
+  </div>
+  <div id="banner"></div>
+  <div class="tabs" id="tabs">
+    <button data-tab="dash" class="on">看板</button>
+    <button data-tab="sess">会话</button>
+    <button data-tab="issues">问题</button>
+    <button data-tab="rules">规则</button>
+    <button data-tab="export">导出</button>
+  </div>
+  <section id="dash"></section>
+  <section id="sess" class="hidden"></section>
+  <section id="issues" class="hidden"></section>
+  <section id="rules" class="hidden"></section>
+  <section id="export" class="hidden"></section>
+</body>
+</html>
